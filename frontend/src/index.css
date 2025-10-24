@@ -1,0 +1,120 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  transition: color 0.2s, background-color 0.2s, border-color 0.2s;
+}
+
+:root {
+  --primary-600: #0284c7;
+  --primary-700: #0369a1;
+  --dark-900: #0f172a;
+  --dark-800: #1e293b;
+  --dark-700: #334155;
+  --dark-600: #475569;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  background-color: var(--dark-900);
+  color: #e2e8f0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+input, textarea, select {
+  background-color: var(--dark-800);
+  border: 1px solid var(--dark-700);
+  color: #e2e8f0;
+  border-radius: 0.375rem;
+  padding: 0.5rem 0.75rem;
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--primary-600);
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.1);
+}
+
+button {
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background-color: var(--primary-600);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  border: none;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-700);
+}
+
+.btn-secondary {
+  background-color: var(--dark-700);
+  color: #e2e8f0;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  border: none;
+}
+
+.btn-secondary:hover {
+  background-color: var(--dark-600);
+}
+
+.btn-danger {
+  background-color: #dc2626;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  border: none;
+}
+
+.btn-danger:hover {
+  background-color: #b91c1c;
+}
+
+.card {
+  background-color: var(--dark-800);
+  border-radius: 0.5rem;
+  border: 1px solid var(--dark-700);
+  padding: 1.5rem;
+}
+
+.card:hover {
+  border-color: var(--dark-600);
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.badge-admin { background-color: rgba(153, 27, 27, 0.3); color: #fca5a5; }
+.badge-moderator { background-color: rgba(120, 53, 15, 0.3); color: #fed7aa; }
+.badge-user { background-color: rgba(30, 58, 138, 0.3); color: #bfdbfe; }
+.badge-editor { background-color: rgba(88, 28, 135, 0.3); color: #e9d5ff; }
+.badge-manager { background-color: rgba(20, 83, 45, 0.3); color: #bbf7d0; }
+.badge-viewer { background-color: rgba(31, 41, 55, 0.3); color: #d1d5db; }
+.badge-developer { background-color: rgba(6, 78, 98, 0.3); color: #a5f3fc; }
+.badge-tester { background-color: rgba(49, 46, 129, 0.3); color: #c7d2fe; }
+.badge-contributor { background-color: rgba(5, 85, 49, 0.3); color: #d1fae5; }
