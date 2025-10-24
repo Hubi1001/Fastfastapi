@@ -1,50 +1,19 @@
 from fastapi import FastAPI, HTTPException, Depends
-from sqlalchemy import create_engine, Column, Integer, String
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import Session
+from typing import List
 
-from pydantic import BaseModel
-from typing import Optional, List
+from database import engine, get_db, Base
+from models import User
+from schemas import UserCreate, UserUpdate, UserResponse
 
-app = FastAPI(title="Integration with SQL")
+app = FastAPI(
+    title="FastAPI with PostgreSQL Integration",
+    description="API for managing users with PostgreSQL database",
+    version="1.0.0"
+)
 
-# Database setup
-engine = create_engine("sqlite:///users.db", connect_args={"check_same_thread": False})
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
-
-class User(Base):
-    __tablename__ = "users"
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(100), nullable=False)
-    email = Column(String(100), nullable=False, unique=True)
-    role = Column(String(100), nullable=False)
-    
+# Create all tables in the database
 Base.metadata.create_all(bind=engine)
-
-# Pydantic models
-class UserCreate(BaseModel):
-    name: str
-    email: str
-    role: str
-    
-class UserResponse(BaseModel):
-    id: int
-    name: str
-    email: str
-    role: str
-
-    class Config:
-        from_attributes = True
-        
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-        
-get_db()
 
 @app.get("/")
 def root():
@@ -70,14 +39,23 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
     return new_user
 
 
-# update user
+# Update user (partial update support)
 @app.put("/users/{user_id}", response_model=UserResponse)
-def update_user(user_id: int, user: UserCreate, db: Session = Depends(get_db)):
+def update_user(user_id: int, user: UserUpdate, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.id == user_id).first()
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    for field, value in user.dict().items():
+    # Only update fields that were provided
+    update_data = user.dict(exclude_unset=True)
+    
+    # Check if email is being changed and if it's already taken
+    if "email" in update_data and update_data["email"] != db_user.email:
+        existing_email = db.query(User).filter(User.email == update_data["email"]).first()
+        if existing_email:
+            raise HTTPException(status_code=400, detail="Email already registered")
+    
+    for field, value in update_data.items():
         setattr(db_user, field, value)
         
     db.commit()
