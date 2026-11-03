@@ -1,15 +1,14 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:15-alpine
     container_name: fastapi_postgres
+    # Values come from the .env file in this folder (copy .env.example to .env first)
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres123
-      POSTGRES_DB: fastapi_db
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      POSTGRES_DB: ${DB_NAME:-fastapi_db}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped

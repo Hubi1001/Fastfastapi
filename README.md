@@ -1,72 +1,80 @@
 # FastAPI + PostgreSQL Integration
 
-Aplikacja FastAPI zintegrowana z bazą danych PostgreSQL do zarządzania użytkownikami.
+Aplikacja do zarządzania użytkownikami: REST API w FastAPI z bazą PostgreSQL (lub SQLite do szybkiego startu) oraz frontend w React (Vite, Tailwind CSS).
+
+## 🧰 Stos technologiczny
+
+- **Backend:** FastAPI, SQLAlchemy 2, Pydantic 2 (walidacja danych, w tym adresów e-mail), Uvicorn
+- **Baza danych:** PostgreSQL (Docker Compose) lub SQLite
+- **Frontend:** React 18, Vite, Tailwind CSS, Axios
+- **Testy:** pytest + FastAPI TestClient (automatyczne), skrypt smoke testu dla działającego serwera
 
 ## 📋 Wymagania
 
-- Python 3.8+
-- PostgreSQL 12+
-- pip
+- Python 3.12 lub 3.13
+- Node.js 18+ (tylko dla frontendu)
+- Docker (opcjonalnie, dla PostgreSQL)
 
-## 🚀 Instalacja
+## 🚀 Szybki start (SQLite)
 
-### 1. Zainstaluj PostgreSQL
-Upewnij się, że masz zainstalowany PostgreSQL na swoim komputerze.
-
-### 2. Utwórz bazę danych
-```sql
--- Zaloguj się do PostgreSQL
-psql -U postgres
-
--- Utwórz nową bazę danych
-CREATE DATABASE fastapi_db;
-
--- Możesz też utworzyć dedykowanego użytkownika
-CREATE USER fastapi_user WITH PASSWORD 'your_secure_password';
-GRANT ALL PRIVILEGES ON DATABASE fastapi_db TO fastapi_user;
-```
-
-### 3. Skonfiguruj zmienne środowiskowe
-Skopiuj plik `.env.example` do `.env` i uzupełnij danymi:
-
-```bash
-DB_USER=postgres
-DB_PASSWORD=twoje_haslo
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=fastapi_db
-```
-
-### 4. Zainstaluj zależności
 ```bash
 pip install -r requirements.txt
-```
-
-## 🏃 Uruchomienie
-
-```bash
+cp .env.sqlite .env              # Windows: copy .env.sqlite .env
 uvicorn myapi:app --reload
 ```
 
-Aplikacja będzie dostępna pod adresem: `http://localhost:8000`
+- API: `http://localhost:8000`
+- Dokumentacja interaktywna (Swagger): `http://localhost:8000/docs`
 
-Dokumentacja API: `http://localhost:8000/docs`
+## 🐘 Uruchomienie z PostgreSQL (Docker)
+
+1. Skopiuj `.env.example` do `.env` i ustaw własne hasło w `DB_PASSWORD`.
+2. Uruchom bazę danych. `docker-compose.yml` czyta te same wartości z `.env`, więc kontener i API używają tych samych danych logowania:
+
+```bash
+docker compose up -d
+uvicorn myapi:app --reload
+```
+
+Baza nasłuchuje tylko na `127.0.0.1`, więc nie jest dostępna z innych komputerów w sieci.
+
+## 🖥️ Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev                      # Windows: można też uruchomić start.bat
+```
+
+Aplikacja działa pod adresem `http://localhost:5173`. Adres API można zmienić zmienną `VITE_API_URL` (np. w pliku `frontend/.env.local`).
+
+## ✅ Testy
+
+```bash
+pip install -r requirements-dev.txt
+pytest                           # testy automatyczne na tymczasowej bazie SQLite
+```
+
+Smoke test i dane przykładowe (wymagają uruchomionego serwera):
+
+```bash
+python test_api.py               # 20 sprawdzeń, kod wyjścia 1 przy pierwszym błędzie
+python add_random_users.py 10    # dodaje 10 losowych użytkowników (Faker, polskie imiona)
+```
 
 ## 📚 Endpointy API
 
-### GET /
-Sprawdź status API
+| Metoda | Ścieżka | Opis | Kody odpowiedzi |
+|--------|---------|------|-----------------|
+| GET | `/` | Status API | 200 |
+| GET | `/users/` | Lista użytkowników | 200 |
+| GET | `/users/{user_id}` | Użytkownik po ID | 200, 404, 422 |
+| POST | `/users/` | Utworzenie użytkownika | 201, 400 (zajęty e-mail), 422 (błędne dane) |
+| PUT | `/users/{user_id}` | Częściowa aktualizacja | 200, 400, 404, 422 |
+| DELETE | `/users/{user_id}` | Usunięcie użytkownika | 200, 404 |
 
-### GET /users/
-Pobierz wszystkich użytkowników
+Przykład body dla `POST /users/`:
 
-### GET /users/{user_id}
-Pobierz użytkownika po ID
-
-### POST /users/
-Utwórz nowego użytkownika
-
-Przykład body:
 ```json
 {
   "name": "Jan Kowalski",
@@ -75,45 +83,53 @@ Przykład body:
 }
 ```
 
-### PUT /users/{user_id}
-Zaktualizuj użytkownika (częściowa aktualizacja)
+`PUT /users/{user_id}` zmienia tylko przesłane pola; pole pominięte lub z wartością `null` pozostaje bez zmian:
 
-Przykład body:
 ```json
 {
   "name": "Jan Nowak"
 }
 ```
 
-### DELETE /users/{user_id}
-Usuń użytkownika
+## 🔒 Walidacja i bezpieczeństwo
+
+- Adres e-mail jest walidowany (`EmailStr`) i musi być unikalny; konflikt zwraca 400, a nie błąd serwera.
+- Pola `name` i `role` muszą mieć od 1 do 100 znaków (tyle mieszczą kolumny w bazie).
+- CORS dopuszcza tylko originy z `CORS_ORIGINS` (domyślnie serwer deweloperski Vite), bez ciasteczek.
+- Hasło do bazy jest wyłącznie w `.env`, który nie trafia do repozytorium.
 
 ## 🗂️ Struktura projektu
 
 ```
 Fastfastapi/
-├── myapi.py          # Główny plik aplikacji z endpointami
-├── database.py       # Konfiguracja połączenia z bazą danych
-├── models.py         # Modele SQLAlchemy
-├── schemas.py        # Schematy Pydantic
-├── .env              # Zmienne środowiskowe (nie w repo)
-├── .env.example      # Przykładowy plik zmiennych
-├── .gitignore        # Pliki ignorowane przez git
-├── requirements.txt  # Zależności Pythona
-└── README.md         # Ten plik
+├── myapi.py              # Aplikacja FastAPI z endpointami
+├── database.py           # Połączenie z bazą danych (DATABASE_URL z .env)
+├── models.py             # Modele SQLAlchemy
+├── schemas.py            # Schematy Pydantic z walidacją
+├── tests/                # Testy automatyczne (pytest)
+├── test_api.py           # Smoke test dla działającego serwera
+├── add_random_users.py   # Generator przykładowych danych
+├── queries.sql           # Przykładowe zapytania SQL
+├── docker-compose.yml    # PostgreSQL w Dockerze
+├── .env.example          # Konfiguracja PostgreSQL (wzór)
+├── .env.sqlite           # Konfiguracja SQLite
+├── requirements.txt      # Zależności aplikacji
+├── requirements-dev.txt  # Zależności do testów i skryptów
+└── frontend/             # Aplikacja React (Vite)
 ```
 
 ## 🔧 Rozwiązywanie problemów
 
-### Problem z połączeniem do bazy danych
-- Sprawdź czy PostgreSQL jest uruchomiony
-- Zweryfikuj dane w pliku `.env`
-- Upewnij się, że baza danych została utworzona
+### `DATABASE_URL is not set`
+Brakuje pliku `.env`. Skopiuj `.env.sqlite` (SQLite) albo `.env.example` (PostgreSQL) jako `.env`.
 
-### Problem z importami
-```bash
-pip install --upgrade -r requirements.txt
-```
+### Problem z połączeniem do bazy danych
+- Sprawdź, czy kontener działa: `docker compose ps`
+- Zweryfikuj dane w pliku `.env`
+
+### Frontend nie widzi API
+- Sprawdź, czy API działa pod `http://localhost:8000`
+- Jeśli frontend działa pod innym adresem, dopisz go do `CORS_ORIGINS` w `.env`
 
 ## 📝 Licencja
 
