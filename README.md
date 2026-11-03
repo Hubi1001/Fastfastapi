@@ -133,4 +133,4 @@ Brakuje pliku `.env`. Skopiuj `.env.sqlite` (SQLite) albo `.env.example` (Postgr
 
 ## 📝 Licencja
 
-MIT
+MIT, tekst w pliku [LICENSE](LICENSE).
