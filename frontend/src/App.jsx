@@ -6,7 +6,17 @@ import UserTable from './components/UserTable';
 import UserCard from './components/UserCard';
 import './index.css';
 
-const API_URL = 'http://localhost:8000';
+// API address can be overridden with VITE_API_URL (e.g. in frontend/.env.local)
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
+// FastAPI returns `detail` as a string (400/404) or as a list of validation errors (422)
+const errorMessage = (error) => {
+  const detail = error.response?.data?.detail;
+  if (Array.isArray(detail)) {
+    return detail.map((d) => `${d.loc?.slice(1).join('.') || 'field'}: ${d.msg}`).join('\n');
+  }
+  return detail || error.message;
+};
 
 function App() {
   const [users, setUsers] = useState([]);
@@ -42,7 +52,7 @@ function App() {
       setShowForm(false);
       alert('✅ User added successfully!');
     } catch (error) {
-      alert('❌ Error adding user: ' + (error.response?.data?.detail || error.message));
+      alert('❌ Error adding user: ' + errorMessage(error));
     }
   };
 
@@ -53,7 +63,7 @@ function App() {
       setEditingId(null);
       alert('✅ User updated successfully!');
     } catch (error) {
-      alert('❌ Error updating user: ' + (error.response?.data?.detail || error.message));
+      alert('❌ Error updating user: ' + errorMessage(error));
     }
   };
 
@@ -65,7 +75,7 @@ function App() {
       setUsers(users.filter(u => u.id !== id));
       alert('✅ User deleted successfully!');
     } catch (error) {
-      alert('❌ Error deleting user: ' + (error.response?.data?.detail || error.message));
+      alert('❌ Error deleting user: ' + errorMessage(error));
     }
   };
 

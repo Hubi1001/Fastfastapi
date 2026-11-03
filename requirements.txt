@@ -1,6 +1,6 @@
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
-sqlalchemy==2.0.23
-python-dotenv==1.0.0
-pydantic==2.5.0
-# psycopg2-binary==2.9.9  # Uncomment if using PostgreSQL
+fastapi==0.115.12
+uvicorn[standard]==0.34.2
+sqlalchemy==2.0.40
+python-dotenv==1.1.0
+pydantic[email]==2.11.4
+psycopg2-binary==2.9.10

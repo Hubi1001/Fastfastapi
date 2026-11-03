@@ -1,140 +1,88 @@
 """
-Test script for FastAPI application
-Tests all CRUD operations on the User API
+Smoke test against a running server (uvicorn myapi:app).
+Every step checks the status code and the response body; the script exits with code 1 on the first failure.
+Emails contain a random suffix, so the script can be run many times against the same database.
+
+Usage:
+    uvicorn myapi:app --reload        # in one terminal
+    python test_api.py                # in another terminal
 """
-import requests
 import json
+import sys
+import uuid
+
+import requests
 
 BASE_URL = "http://127.0.0.1:8000"
+RUN = uuid.uuid4().hex[:8]
+passed = 0
 
-def print_response(response, title):
-    """Pretty print API response"""
-    print(f"\n{'='*60}")
-    print(f"📌 {title}")
-    print(f"{'='*60}")
-    print(f"Status Code: {response.status_code}")
+
+def check(step, response, expected_status, predicate=None):
+    """Assert the status code (and optionally the JSON body) and print a one-line result."""
+    global passed
     try:
-        print(f"Response: {json.dumps(response.json(), indent=2, ensure_ascii=False)}")
-    except:
-        print(f"Response: {response.text}")
+        body = response.json()
+    except ValueError:
+        body = response.text
+    ok = response.status_code == expected_status and (predicate is None or predicate(body))
+    mark = "OK  " if ok else "FAIL"
+    print(f"[{mark}] {step}: HTTP {response.status_code} (expected {expected_status})")
+    if not ok:
+        print("       response:", json.dumps(body, ensure_ascii=False)[:300])
+        sys.exit(1)
+    passed += 1
+    return body
+
 
 def test_api():
-    print("\n🚀 Starting API Tests...\n")
-    
-    # 1. Test root endpoint
-    print("\n1️⃣ Testing root endpoint...")
-    response = requests.get(f"{BASE_URL}/")
-    print_response(response, "GET /")
-    
-    # 2. Get all users (should be empty initially)
-    print("\n2️⃣ Getting all users (initial state)...")
-    response = requests.get(f"{BASE_URL}/users/")
-    print_response(response, "GET /users/")
-    
-    # 3. Create first user
-    print("\n3️⃣ Creating first user...")
-    user1_data = {
-        "name": "Jan Kowalski",
-        "email": "jan.kowalski@example.com",
-        "role": "admin"
+    print(f"Running API smoke test against {BASE_URL} (run id {RUN})\n")
+    check("GET / returns a message", requests.get(f"{BASE_URL}/"), 200, lambda b: "message" in b)
+
+    users = {
+        "jan": {"name": "Jan Kowalski", "email": f"jan.kowalski.{RUN}@example.com", "role": "admin"},
+        "anna": {"name": "Anna Nowak", "email": f"anna.nowak.{RUN}@example.com", "role": "user"},
+        "piotr": {"name": "Piotr Wiśniewski", "email": f"piotr.wisniewski.{RUN}@example.com", "role": "moderator"},
     }
-    response = requests.post(f"{BASE_URL}/users/", json=user1_data)
-    print_response(response, "POST /users/ (Jan Kowalski)")
-    user1_id = response.json()["id"] if response.status_code == 200 else None
-    
-    # 4. Create second user
-    print("\n4️⃣ Creating second user...")
-    user2_data = {
-        "name": "Anna Nowak",
-        "email": "anna.nowak@example.com",
-        "role": "user"
-    }
-    response = requests.post(f"{BASE_URL}/users/", json=user2_data)
-    print_response(response, "POST /users/ (Anna Nowak)")
-    user2_id = response.json()["id"] if response.status_code == 200 else None
-    
-    # 5. Create third user
-    print("\n5️⃣ Creating third user...")
-    user3_data = {
-        "name": "Piotr Wiśniewski",
-        "email": "piotr.wisniewski@example.com",
-        "role": "moderator"
-    }
-    response = requests.post(f"{BASE_URL}/users/", json=user3_data)
-    print_response(response, "POST /users/ (Piotr Wiśniewski)")
-    user3_id = response.json()["id"] if response.status_code == 200 else None
-    
-    # 6. Try to create duplicate email (should fail)
-    print("\n6️⃣ Trying to create user with duplicate email...")
-    response = requests.post(f"{BASE_URL}/users/", json=user1_data)
-    print_response(response, "POST /users/ (Duplicate email)")
-    
-    # 7. Get all users
-    print("\n7️⃣ Getting all users...")
-    response = requests.get(f"{BASE_URL}/users/")
-    print_response(response, "GET /users/")
-    
-    # 8. Get specific user by ID
-    if user1_id:
-        print(f"\n8️⃣ Getting user by ID ({user1_id})...")
-        response = requests.get(f"{BASE_URL}/users/{user1_id}")
-        print_response(response, f"GET /users/{user1_id}")
-    
-    # 9. Update user (full update)
-    if user2_id:
-        print(f"\n9️⃣ Updating user {user2_id}...")
-        update_data = {
-            "name": "Anna Kowalska",
-            "email": "anna.kowalska@example.com",
-            "role": "admin"
-        }
-        response = requests.put(f"{BASE_URL}/users/{user2_id}", json=update_data)
-        print_response(response, f"PUT /users/{user2_id}")
-    
-    # 10. Partial update (only name)
-    if user3_id:
-        print(f"\n🔟 Partial update of user {user3_id} (only role)...")
-        update_data = {
-            "role": "super_admin"
-        }
-        response = requests.put(f"{BASE_URL}/users/{user3_id}", json=update_data)
-        print_response(response, f"PUT /users/{user3_id} (partial)")
-    
-    # 11. Get all users after updates
-    print("\n1️⃣1️⃣ Getting all users after updates...")
-    response = requests.get(f"{BASE_URL}/users/")
-    print_response(response, "GET /users/ (after updates)")
-    
-    # 12. Try to get non-existent user
-    print("\n1️⃣2️⃣ Trying to get non-existent user...")
-    response = requests.get(f"{BASE_URL}/users/9999")
-    print_response(response, "GET /users/9999")
-    
-    # 13. Delete user
-    if user1_id:
-        print(f"\n1️⃣3️⃣ Deleting user {user1_id}...")
-        response = requests.delete(f"{BASE_URL}/users/{user1_id}")
-        print_response(response, f"DELETE /users/{user1_id}")
-    
-    # 14. Verify deletion
-    print("\n1️⃣4️⃣ Getting all users after deletion...")
-    response = requests.get(f"{BASE_URL}/users/")
-    print_response(response, "GET /users/ (after deletion)")
-    
-    # 15. Try to delete non-existent user
-    print("\n1️⃣5️⃣ Trying to delete non-existent user...")
-    response = requests.delete(f"{BASE_URL}/users/9999")
-    print_response(response, "DELETE /users/9999")
-    
-    print("\n" + "="*60)
-    print("✅ All tests completed!")
-    print("="*60 + "\n")
+    ids = {}
+    for key, data in users.items():
+        body = check(f"POST /users/ creates {data['name']}", requests.post(f"{BASE_URL}/users/", json=data), 201,
+                     lambda b, d=data: b["email"] == d["email"] and isinstance(b["id"], int))
+        ids[key] = body["id"]
+
+    check("POST duplicate email is rejected", requests.post(f"{BASE_URL}/users/", json=users["jan"]), 400,
+          lambda b: b["detail"] == "Email already registered")
+    check("POST invalid email is rejected", requests.post(f"{BASE_URL}/users/", json={**users["jan"], "email": "not-an-email"}), 422)
+    check("POST missing field is rejected", requests.post(f"{BASE_URL}/users/", json={"name": "No Email"}), 422)
+
+    check("GET /users/ lists created users", requests.get(f"{BASE_URL}/users/"), 200,
+          lambda b: {ids["jan"], ids["anna"], ids["piotr"]} <= {u["id"] for u in b})
+    check("GET /users/{id} returns the user", requests.get(f"{BASE_URL}/users/{ids['jan']}"), 200,
+          lambda b: b["name"] == "Jan Kowalski")
+
+    full = {"name": "Anna Kowalska", "email": f"anna.kowalska.{RUN}@example.com", "role": "admin"}
+    check("PUT full update", requests.put(f"{BASE_URL}/users/{ids['anna']}", json=full), 200,
+          lambda b: b == {**full, "id": ids["anna"]})
+    check("PUT partial update changes only role", requests.put(f"{BASE_URL}/users/{ids['piotr']}", json={"role": "super_admin"}), 200,
+          lambda b: b["role"] == "super_admin" and b["name"] == "Piotr Wiśniewski")
+    check("PUT to an email that is taken is rejected",
+          requests.put(f"{BASE_URL}/users/{ids['piotr']}", json={"email": users["jan"]["email"]}), 400)
+    check("PUT invalid email is rejected", requests.put(f"{BASE_URL}/users/{ids['piotr']}", json={"email": "bad"}), 422)
+
+    check("GET unknown id returns 404", requests.get(f"{BASE_URL}/users/999999"), 404)
+    check("GET non-numeric id returns 422", requests.get(f"{BASE_URL}/users/abc"), 422)
+
+    for key in ids:
+        check(f"DELETE user {ids[key]}", requests.delete(f"{BASE_URL}/users/{ids[key]}"), 200)
+    check("GET deleted user returns 404", requests.get(f"{BASE_URL}/users/{ids['jan']}"), 404)
+    check("DELETE unknown id returns 404", requests.delete(f"{BASE_URL}/users/999999"), 404)
+
+    print(f"\nAll {passed} checks passed.")
+
 
 if __name__ == "__main__":
     try:
         test_api()
     except requests.exceptions.ConnectionError:
-        print("\n❌ Error: Cannot connect to API server!")
-        print("Make sure the server is running: uvicorn myapi:app --reload")
-    except Exception as e:
-        print(f"\n❌ Error: {e}")
+        print("\nError: cannot connect to the API server. Start it with: uvicorn myapi:app --reload")
+        sys.exit(1)
